@@ -126,38 +126,42 @@ class HabitHeatmap extends StatelessWidget {
             ),
           ),
           // Stats
-          SizedBox(
-            height: 80,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _buildStatCard(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
                     context,
                     'Total Logs',
                     logs.length.toString(),
                   ),
-                  const SizedBox(width: 8),
-                  _buildStatCard(
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatCard(
                     context,
                     'Current Streak',
                     '$currentStreak days',
                   ),
-                  const SizedBox(width: 8),
-                  _buildStatCard(
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatCard(
                     context,
                     'Longest Streak',
                     '$longestStreak days',
                   ),
-                  const SizedBox(width: 8),
-                  _buildStatCard(
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatCard(
                     context,
-                    'Max Per Day',
+                    'Max/Day',
                     maxValue.toString(),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -200,22 +204,26 @@ class HabitHeatmap extends StatelessWidget {
       elevation: 0,
       color: Theme.of(context).colorScheme.surfaceVariant,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: Column(
           children: [
             Text(
               value,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.primary,
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

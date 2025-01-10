@@ -52,14 +52,39 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(habit.name),
             Text(
               _formatDate(date),
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
         content: SizedBox(
           width: double.maxFinite,
           child: habitLogs.isEmpty
-              ? const Text('No logs for this date')
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('No logs for this date'),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          final now = date;
+                          final log = HabitLog(
+                            habitId: habit.id!,
+                            date: now,
+                            completed: true,
+                          );
+                          await context.read<HabitProvider>().logHabit(log);
+                          await _loadData();
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Log'),
+                      ),
+                    ],
+                  ),
+                )
               : ListView.builder(
                   shrinkWrap: true,
                   itemCount: habitLogs.length,
@@ -76,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.delete),
                         onPressed: () async {
                           await context.read<HabitProvider>().deleteLog(log.id!);
+                          await _loadData();
                           Navigator.of(context).pop();
                         },
                       ),
@@ -173,68 +199,84 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Log Past Date'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(_selectedDate == null ? 'Select date' : _formatDate(_selectedDate)),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () => _selectDate(context),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Log Past Date'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(_selectedDate == null ? 'Select date' : _formatDate(_selectedDate)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate ?? DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDate = picked;
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                title: Text('Time: ${selectedTime.format(context)}'),
+                trailing: const Icon(Icons.access_time),
+                onTap: () async {
+                  final TimeOfDay? picked = await showTimePicker(
+                    context: context,
+                    initialTime: selectedTime,
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      selectedTime = picked;
+                    });
+                  }
+                },
+              ),
+              TextField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optional)',
+                  hintText: 'Add notes about this completion',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
             ),
-            ListTile(
-              title: Text('Time: ${selectedTime.format(context)}'),
-              trailing: const Icon(Icons.access_time),
-              onTap: () async {
-                final TimeOfDay? picked = await showTimePicker(
-                  context: context,
-                  initialTime: selectedTime,
-                );
-                if (picked != null) {
-                  selectedTime = picked;
-                  (context as Element).markNeedsBuild();
+            TextButton(
+              onPressed: () async {
+                if (_selectedDate != null) {
+                  final now = _selectedDate!;
+                  final dateTime = DateTime(
+                    now.year,
+                    now.month,
+                    now.day,
+                    selectedTime.hour,
+                    selectedTime.minute,
+                  );
+                  final log = HabitLog(
+                    habitId: habit.id!,
+                    date: dateTime,
+                    completed: true,
+                    notes: _notesController.text.isEmpty ? null : _notesController.text,
+                  );
+                  await context.read<HabitProvider>().logHabit(log);
+                  await _loadData(); // Reload data after logging
+                  Navigator.of(context).pop();
                 }
               },
-            ),
-            TextField(
-              controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional)',
-                hintText: 'Add notes about this completion',
-              ),
+              child: const Text('Log'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (_selectedDate != null) {
-                final now = _selectedDate!;
-                final dateTime = DateTime(
-                  now.year,
-                  now.month,
-                  now.day,
-                  selectedTime.hour,
-                  selectedTime.minute,
-                );
-                final log = HabitLog(
-                  habitId: habit.id!,
-                  date: dateTime,
-                  completed: true,
-                  notes: _notesController.text.isEmpty ? null : _notesController.text,
-                );
-                await context.read<HabitProvider>().logHabit(log);
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Log'),
-          ),
-        ],
       ),
     );
   }
