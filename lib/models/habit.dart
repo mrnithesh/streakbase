@@ -1,15 +1,12 @@
-import 'package:json_annotation/json_annotation.dart';
+import 'package:flutter/material.dart';
+import 'category.dart';
 
-part 'habit.g.dart';
-
-@JsonSerializable()
 class Habit {
   final int? id;
   final String name;
-  @JsonKey(name: 'start_date')
   final DateTime? startDate;
   final String? notes;
-  final String? category;
+  final Category? category;
 
   Habit({
     this.id,
@@ -19,17 +16,32 @@ class Habit {
     this.category,
   });
 
-  // JSON serialization
-  factory Habit.fromJson(Map<String, dynamic> json) => _$HabitFromJson(json);
-  Map<String, dynamic> toJson() => _$HabitToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'start_date': startDate?.toIso8601String(),
+      'notes': notes,
+      'category_id': category?.id,
+    };
+  }
 
-  // Create a copy of the habit with some fields replaced
+  factory Habit.fromJson(Map<String, dynamic> json) {
+    return Habit(
+      id: json['id'] as int?,
+      name: json['name'] as String,
+      startDate: json['start_date'] != null ? DateTime.parse(json['start_date'] as String) : null,
+      notes: json['notes'] as String?,
+      // Category will be set later by the provider
+    );
+  }
+
   Habit copyWith({
     int? id,
     String? name,
     DateTime? startDate,
     String? notes,
-    String? category,
+    Category? category,
   }) {
     return Habit(
       id: id ?? this.id,

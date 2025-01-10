@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:streakbase/models/habit.dart';
 import 'package:streakbase/models/habit_log.dart';
+import 'package:streakbase/models/category.dart';
 import 'package:streakbase/providers/habit_provider.dart';
 import 'package:streakbase/widgets/habit_heatmap.dart';
+import 'package:streakbase/widgets/category_selector.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -45,31 +47,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(habit.name),
-            Text(
-              _formatDate(date),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+      builder: (context) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          habit.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          _formatDate(date),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: habitLogs.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+              const SizedBox(height: 8),
+              if (habitLogs.isEmpty)
+                Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'No logs for this date',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 8),
                       FilledButton.icon(
@@ -83,26 +102,36 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                           await context.read<HabitProvider>().logHabit(log);
                         },
-                        icon: const Icon(Icons.add, size: 20),
+                        icon: const Icon(Icons.add, size: 16),
                         label: const Text('Add Log'),
                       ),
                     ],
                   ),
                 )
-              : ListView.builder(
+              else
+                ListView.builder(
                   shrinkWrap: true,
                   itemCount: habitLogs.length,
                   itemBuilder: (context, index) {
                     final log = habitLogs[index];
                     return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
                       leading: Icon(
                         log.completed ? Icons.check_circle : Icons.circle_outlined,
                         color: log.completed ? Colors.green : Colors.grey,
+                        size: 20,
                       ),
-                      title: Text(DateFormat('h:mm a').format(log.date)),
-                      subtitle: log.notes != null ? Text(log.notes!) : null,
+                      title: Text(
+                        DateFormat('h:mm a').format(log.date),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      subtitle: log.notes != null ? Text(
+                        log.notes!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ) : null,
                       trailing: IconButton(
-                        icon: const Icon(Icons.delete),
+                        icon: const Icon(Icons.delete, size: 20),
                         onPressed: () async {
                           await context.read<HabitProvider>().deleteLog(log.id!);
                           Navigator.of(context).pop();
@@ -111,13 +140,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -352,73 +377,89 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _showAddHabitDialog(BuildContext context) async {
     _nameController.clear();
     _notesController.clear();
+    Category? selectedCategory;
 
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Add New Habit',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Add New Habit',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Habit Name',
-                  hintText: 'Enter habit name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a habit name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Notes (optional)',
-                  hintText: 'Add notes about this habit',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Habit Name',
+                      hintText: 'Enter habit name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a habit name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _notesController,
+                    decoration: const InputDecoration(
+                      labelText: 'Notes (optional)',
+                      hintText: 'Add notes about this habit',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  CategorySelector(
+                    selectedCategory: selectedCategory,
+                    onCategorySelected: (category) {
+                      setState(() {
+                        selectedCategory = category;
+                      });
+                    },
+                  ),
+                ],
               ),
             ),
           ),
-          FilledButton(
-            onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                final habit = Habit(
-                  name: _nameController.text,
-                  startDate: DateTime.now(),
-                  notes: _notesController.text.isEmpty ? null : _notesController.text,
-                );
-                await context.read<HabitProvider>().addHabit(habit);
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (_formKey.currentState!.validate()) {
+                  final habit = Habit(
+                    name: _nameController.text,
+                    startDate: DateTime.now(),
+                    notes: _notesController.text.isEmpty ? null : _notesController.text,
+                    category: selectedCategory,
+                  );
+                  await context.read<HabitProvider>().addHabit(habit);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
       ),
     );
   }

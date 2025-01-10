@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../models/habit.dart';
 import '../models/habit_log.dart';
+import '../models/category.dart';
+import '../providers/category_provider.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -31,8 +33,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDb,
+      onUpgrade: _onUpgrade,
       onOpen: (db) async {
         // Enable foreign key support
         await db.execute('PRAGMA foreign_keys = ON');
@@ -42,12 +45,22 @@ class DatabaseService {
 
   Future<void> _createDb(Database db, int version) async {
     await db.execute('''
+      CREATE TABLE categories(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        color INTEGER NOT NULL,
+        icon INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
       CREATE TABLE habits(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         start_date TEXT,
         notes TEXT,
-        category TEXT
+        category_id INTEGER,
+        FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
       )
     ''');
 
@@ -56,19 +69,39 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         habit_id INTEGER NOT NULL,
         date TEXT NOT NULL,
-        completed INTEGER NOT NULL,
+        completed INTEGER NOT NULL DEFAULT 0,
         notes TEXT,
         FOREIGN KEY (habit_id) REFERENCES habits (id) ON DELETE CASCADE
       )
     ''');
 
-    await db.execute('''
-      CREATE TABLE categories(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        color INTEGER NOT NULL
-      )
-    ''');
+    // Insert default categories
+    for (var category in CategoryProvider.defaultCategories) {
+      await db.insert('categories', category.toJson());
+    }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add missing columns
+      await db.execute('ALTER TABLE habits ADD COLUMN category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL');
+      
+      // For categories table, we need to recreate it since SQLite doesn't support adding multiple columns in one statement
+      await db.execute('DROP TABLE IF EXISTS categories');
+      await db.execute('''
+        CREATE TABLE categories(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          color INTEGER NOT NULL,
+          icon INTEGER NOT NULL
+        )
+      ''');
+      
+      // Insert default categories
+      for (var category in CategoryProvider.defaultCategories) {
+        await db.insert('categories', category.toJson());
+      }
+    }
   }
 
   Future<void> initialize() async {
@@ -90,7 +123,25 @@ class DatabaseService {
   Future<List<Habit>> getHabits() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('habits');
-    return maps.map((map) => Habit.fromJson(map)).toList();
+    final habits = maps.map((map) => Habit.fromJson(map)).toList();
+
+    // Load categories for habits
+    for (var i = 0; i < habits.length; i++) {
+      final categoryId = maps[i]['category_id'] as int?;
+      if (categoryId != null) {
+        final categoryMaps = await db.query(
+          'categories',
+          where: 'id = ?',
+          whereArgs: [categoryId],
+        );
+        if (categoryMaps.isNotEmpty) {
+          final category = Category.fromJson(categoryMaps.first);
+          habits[i] = habits[i].copyWith(category: category);
+        }
+      }
+    }
+
+    return habits;
   }
 
   Future<void> updateHabit(Habit habit) async {
@@ -160,6 +211,47 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  // CRUD operations for categories
+  Future<int> insertCategory(Category category) async {
+    final db = await database;
+    return await db.insert('categories', category.toJson());
+  }
+
+  Future<List<Category>> getCategories() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('categories');
+    return maps.map((map) => Category.fromJson(map)).toList();
+  }
+
+  Future<void> updateCategory(Category category) async {
+    final db = await database;
+    await db.update(
+      'categories',
+      category.toJson(),
+      where: 'id = ?',
+      whereArgs: [category.id],
+    );
+  }
+
+  Future<void> deleteCategory(int id) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // Update habits to remove category reference
+      await txn.update(
+        'habits',
+        {'category_id': null},
+        where: 'category_id = ?',
+        whereArgs: [id],
+      );
+      // Delete the category
+      await txn.delete(
+        'categories',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   }
 
   // Export data to JSON
