@@ -11,22 +11,26 @@ void main() async {
   final databaseService = DatabaseService();
   await databaseService.initialize();
 
-  runApp(const MyApp());
+  runApp(MyApp(databaseService: databaseService));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final DatabaseService databaseService;
+
+  const MyApp({
+    super.key,
+    required this.databaseService,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<DatabaseService>(
-          create: (_) => DatabaseService(),
-          lazy: false,
+        Provider<DatabaseService>.value(
+          value: databaseService,
         ),
         ChangeNotifierProxyProvider<DatabaseService, HabitProvider>(
-          create: (context) => HabitProvider(db: context.read<DatabaseService>()),
+          create: (context) => HabitProvider(db: databaseService),
           update: (context, db, previous) => previous ?? HabitProvider(db: db),
         ),
       ],

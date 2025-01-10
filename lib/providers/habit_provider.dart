@@ -23,6 +23,10 @@ class HabitProvider with ChangeNotifier {
     try {
       _habits = await _db.getHabits();
       notifyListeners();
+    } catch (e) {
+      _habits = [];
+      notifyListeners();
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -42,6 +46,10 @@ class HabitProvider with ChangeNotifier {
         }
       }
       notifyListeners();
+    } catch (e) {
+      _logs = [];
+      notifyListeners();
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -54,6 +62,7 @@ class HabitProvider with ChangeNotifier {
       final newHabit = habit.copyWith(id: id);
       _habits.add(newHabit);
       notifyListeners();
+      await loadLogs();
     } catch (e) {
       rethrow;
     }
@@ -68,6 +77,7 @@ class HabitProvider with ChangeNotifier {
       if (index != -1) {
         _habits[index] = habit;
         notifyListeners();
+        await loadLogs();
       }
     } catch (e) {
       rethrow;

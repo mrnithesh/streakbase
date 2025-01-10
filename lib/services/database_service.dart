@@ -17,17 +17,26 @@ class DatabaseService {
   DatabaseService._internal();
 
   Future<Database> get database async {
-    if (_database != null) return _database!;
+    if (_database != null && _database!.isOpen) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'streakbase.db');
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'streakbase.db');
+
+    // Make sure the directory exists
+    await Directory(dirname(path)).create(recursive: true);
+
     return await openDatabase(
       path,
       version: 1,
       onCreate: _createDb,
+      onOpen: (db) async {
+        // Enable foreign key support
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
     );
   }
 
@@ -64,6 +73,12 @@ class DatabaseService {
 
   Future<void> initialize() async {
     await database;
+  }
+
+  Future<void> close() async {
+    final db = await database;
+    await db.close();
+    _database = null;
   }
 
   // CRUD operations for habits
@@ -120,8 +135,9 @@ class DatabaseService {
       whereArgs: [habitId],
     );
     return maps.map((map) {
-      map['completed'] = map['completed'] == 1;
-      return HabitLog.fromJson(map);
+      final newMap = Map<String, dynamic>.from(map);
+      newMap['completed'] = newMap['completed'] == 1;
+      return HabitLog.fromJson(newMap);
     }).toList();
   }
 
@@ -190,6 +206,7 @@ class DatabaseService {
   Future<String> backup() async {
     final db = await database;
     await db.close();
+    _database = null;
     
     final dbFile = File(join(await getDatabasesPath(), 'streakbase.db'));
     final documentsDir = await getApplicationDocumentsDirectory();
@@ -197,7 +214,6 @@ class DatabaseService {
         'streakbase_backup_${DateTime.now().toIso8601String()}.db'));
     
     await dbFile.copy(backupFile.path);
-    _database = null; // Force reopen on next access
     
     return backupFile.path;
   }

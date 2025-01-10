@@ -8,12 +8,18 @@ class HabitHeatmap extends StatelessWidget {
   final Habit habit;
   final List<HabitLog> logs;
   final Function(DateTime) onDaySelected;
+  final VoidCallback onLogToday;
+  final Function(DateTime) onLogPastDate;
+  final VoidCallback onDelete;
 
   const HabitHeatmap({
     Key? key,
     required this.habit,
     required this.logs,
     required this.onDaySelected,
+    required this.onLogToday,
+    required this.onLogPastDate,
+    required this.onDelete,
   }) : super(key: key);
 
   Map<DateTime, int> _getHeatmapData() {
@@ -40,48 +46,135 @@ class HabitHeatmap extends StatelessWidget {
   Widget build(BuildContext context) {
     final heatmapData = _getHeatmapData();
     final maxValue = heatmapData.values.fold(0, (max, value) => value > max ? value : max);
+    final currentStreak = _getCurrentStreak();
+    final longestStreak = _getLongestStreak();
 
     return Card(
-      elevation: 4,
-      margin: const EdgeInsets.all(8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              habit.name,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with habit name and actions
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        habit.name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Started on: ${DateFormat('MMM d, y').format(habit.startDate ?? DateTime.now())}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (habit.notes != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          habit.notes!,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Action buttons
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: () => onLogPastDate(DateTime.now()),
+                      tooltip: 'Log past date',
+                      style: IconButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check_circle_outline),
+                      onPressed: onLogToday,
+                      tooltip: 'Log today',
+                      style: IconButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: onDelete,
+                      tooltip: 'Delete habit',
+                      style: IconButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Started on: ${DateFormat('MMM d, y').format(habit.startDate ?? DateTime.now())}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+          ),
+          // Stats
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatCard(
+                  context,
+                  'Total Logs',
+                  logs.length.toString(),
+                ),
+                _buildStatCard(
+                  context,
+                  'Current Streak',
+                  '$currentStreak days',
+                ),
+                _buildStatCard(
+                  context,
+                  'Longest Streak',
+                  '$longestStreak days',
+                ),
+                _buildStatCard(
+                  context,
+                  'Max Per Day',
+                  maxValue.toString(),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            HeatMap(
+          ),
+          const SizedBox(height: 16),
+          // Heatmap
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: HeatMap(
               datasets: heatmapData,
               colorMode: ColorMode.color,
-              defaultColor: Colors.grey[200],
-              textColor: Colors.black,
+              defaultColor: Theme.of(context).colorScheme.surfaceVariant,
+              textColor: Theme.of(context).colorScheme.onSurface,
               showColorTip: false,
               showText: false,
               scrollable: true,
-              size: 30,
+              size: 35,
               colorsets: {
-                1: Colors.green[300]!,
-                2: Colors.green[400]!,
-                3: Colors.green[500]!,
-                4: Colors.green[600]!,
-                5: Colors.green[700]!,
-                6: Colors.green[800]!,
-                7: Colors.green[900]!,
+                1: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                2: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                3: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                4: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                5: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                6: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                7: Theme.of(context).colorScheme.primary.withOpacity(0.9),
               },
               onClick: (value) {
                 if (value != null) {
@@ -89,14 +182,34 @@ class HabitHeatmap extends StatelessWidget {
                 }
               },
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildLegendItem('No activity', Colors.grey[200]!),
-                const SizedBox(width: 8),
-                _buildLegendItem('${maxValue} completions', Colors.green[900]!),
-              ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(BuildContext context, String label, String value) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceVariant,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -104,20 +217,66 @@ class HabitHeatmap extends StatelessWidget {
     );
   }
 
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(label),
-      ],
-    );
+  int _getCurrentStreak() {
+    if (logs.isEmpty) return 0;
+
+    final sortedLogs = logs.where((log) => log.completed).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    int streak = 0;
+    DateTime? lastDate;
+
+    for (var log in sortedLogs) {
+      final logDate = DateTime(log.date.year, log.date.month, log.date.day);
+      
+      if (lastDate == null) {
+        lastDate = logDate;
+        streak = 1;
+        continue;
+      }
+
+      final difference = lastDate.difference(logDate).inDays;
+      if (difference == 1) {
+        streak++;
+        lastDate = logDate;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  int _getLongestStreak() {
+    if (logs.isEmpty) return 0;
+
+    final sortedLogs = logs.where((log) => log.completed).toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    int currentStreak = 1;
+    int longestStreak = 1;
+    DateTime? lastDate;
+
+    for (var log in sortedLogs) {
+      final logDate = DateTime(log.date.year, log.date.month, log.date.day);
+      
+      if (lastDate == null) {
+        lastDate = logDate;
+        continue;
+      }
+
+      final difference = logDate.difference(lastDate).inDays;
+      if (difference == 1) {
+        currentStreak++;
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak;
+        }
+      } else {
+        currentStreak = 1;
+      }
+      lastDate = logDate;
+    }
+
+    return longestStreak;
   }
 } 

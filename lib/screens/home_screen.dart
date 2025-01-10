@@ -23,11 +23,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     // Load habits when the screen initializes
-    Future.microtask(() async {
-      final provider = context.read<HabitProvider>();
-      await provider.loadHabits();
-      await provider.loadLogs();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
     });
+  }
+
+  Future<void> _loadData() async {
+    final provider = context.read<HabitProvider>();
+    await provider.loadHabits();
+    await provider.loadLogs();
   }
 
   String _formatDate(DateTime? date) {
@@ -126,72 +130,26 @@ class _HomeScreenState extends State<HomeScreen> {
               await habitProvider.loadHabits();
               await habitProvider.loadLogs();
             },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  if (habitProvider.habits.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('No habits yet. Add one to get started!'),
-                    ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+            child: habitProvider.habits.isEmpty
+                ? const Center(
+                    child: Text('No habits yet. Add one to get started!'),
+                  )
+                : ListView.builder(
                     itemCount: habitProvider.habits.length,
                     itemBuilder: (context, index) {
                       final habit = habitProvider.habits[index];
                       final logs = habitProvider.getLogsForHabit(habit.id!);
                       
-                      return Column(
-                        children: [
-                          HabitHeatmap(
-                            habit: habit,
-                            logs: logs,
-                            onDaySelected: (date) => _showHabitDetails(context, habit, date),
-                          ),
-                          Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            child: Column(
-                              children: [
-                                ListTile(
-                                  title: Text(habit.name),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Started on: ${_formatDate(habit.startDate)}'),
-                                      if (habit.notes != null) Text('Notes: ${habit.notes}'),
-                                      Text('Total logs: ${logs.length}'),
-                                    ],
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.calendar_today),
-                                        onPressed: () => _showLogHabitDialog(context, habit),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.check_circle_outline),
-                                        onPressed: () => _logHabit(context, habit),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete),
-                                        onPressed: () => _deleteHabit(context, habit),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      return HabitHeatmap(
+                        habit: habit,
+                        logs: logs,
+                        onDaySelected: (date) => _showHabitDetails(context, habit, date),
+                        onLogToday: () => _logHabit(context, habit),
+                        onLogPastDate: (_) => _showLogHabitDialog(context, habit),
+                        onDelete: () => _deleteHabit(context, habit),
                       );
                     },
                   ),
-                ],
-              ),
-            ),
           );
         },
       ),
@@ -204,18 +162,19 @@ class _HomeScreenState extends State<HomeScreen> {
       date: DateTime.now(),
       completed: true,
     );
-    
     await context.read<HabitProvider>().logHabit(log);
+    await _loadData(); // Reload data after logging
   }
 
   Future<void> _showLogHabitDialog(BuildContext context, Habit habit) async {
     _selectedDate = null;
     _notesController.clear();
+    TimeOfDay selectedTime = TimeOfDay.now();
 
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Log Habit'),
+        title: const Text('Log Past Date'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -223,6 +182,20 @@ class _HomeScreenState extends State<HomeScreen> {
               title: Text(_selectedDate == null ? 'Select date' : _formatDate(_selectedDate)),
               trailing: const Icon(Icons.calendar_today),
               onTap: () => _selectDate(context),
+            ),
+            ListTile(
+              title: Text('Time: ${selectedTime.format(context)}'),
+              trailing: const Icon(Icons.access_time),
+              onTap: () async {
+                final TimeOfDay? picked = await showTimePicker(
+                  context: context,
+                  initialTime: selectedTime,
+                );
+                if (picked != null) {
+                  selectedTime = picked;
+                  (context as Element).markNeedsBuild();
+                }
+              },
             ),
             TextField(
               controller: _notesController,
@@ -241,9 +214,17 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             onPressed: () async {
               if (_selectedDate != null) {
+                final now = _selectedDate!;
+                final dateTime = DateTime(
+                  now.year,
+                  now.month,
+                  now.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
+                );
                 final log = HabitLog(
                   habitId: habit.id!,
-                  date: _selectedDate!,
+                  date: dateTime,
                   completed: true,
                   notes: _notesController.text.isEmpty ? null : _notesController.text,
                 );
@@ -277,8 +258,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (confirmed == true && habit.id != null) {
+    if (confirmed == true) {
       await context.read<HabitProvider>().deleteHabit(habit.id!);
+      await _loadData(); // Reload data after deleting
     }
   }
 
