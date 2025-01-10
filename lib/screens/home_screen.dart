@@ -48,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => AlertDialog(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(habit.name),
             Text(
@@ -61,12 +62,16 @@ class _HomeScreenState extends State<HomeScreen> {
         content: SizedBox(
           width: double.maxFinite,
           child: habitLogs.isEmpty
-              ? Center(
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('No logs for this date'),
-                      const SizedBox(height: 16),
+                      Text(
+                        'No logs for this date',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 8),
                       FilledButton.icon(
                         onPressed: () async {
                           Navigator.of(context).pop();
@@ -77,9 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             completed: true,
                           );
                           await context.read<HabitProvider>().logHabit(log);
-                          await _loadData();
                         },
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(Icons.add, size: 20),
                         label: const Text('Add Log'),
                       ),
                     ],
@@ -101,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.delete),
                         onPressed: () async {
                           await context.read<HabitProvider>().deleteLog(log.id!);
-                          await _loadData();
                           Navigator.of(context).pop();
                         },
                       ),
@@ -189,7 +192,6 @@ class _HomeScreenState extends State<HomeScreen> {
       completed: true,
     );
     await context.read<HabitProvider>().logHabit(log);
-    await _loadData(); // Reload data after logging
   }
 
   Future<void> _showLogHabitDialog(BuildContext context, Habit habit) async {
@@ -269,7 +271,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     notes: _notesController.text.isEmpty ? null : _notesController.text,
                   );
                   await context.read<HabitProvider>().logHabit(log);
-                  await _loadData(); // Reload data after logging
                   Navigator.of(context).pop();
                 }
               },
@@ -302,7 +303,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed == true) {
       await context.read<HabitProvider>().deleteHabit(habit.id!);
-      await _loadData(); // Reload data after deleting
     }
   }
 
