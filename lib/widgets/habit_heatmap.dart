@@ -126,32 +126,38 @@ class HabitHeatmap extends StatelessWidget {
             ),
           ),
           // Stats
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildStatCard(
-                  context,
-                  'Total Logs',
-                  logs.length.toString(),
-                ),
-                _buildStatCard(
-                  context,
-                  'Current Streak',
-                  '$currentStreak days',
-                ),
-                _buildStatCard(
-                  context,
-                  'Longest Streak',
-                  '$longestStreak days',
-                ),
-                _buildStatCard(
-                  context,
-                  'Max Per Day',
-                  maxValue.toString(),
-                ),
-              ],
+          SizedBox(
+            height: 80,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _buildStatCard(
+                    context,
+                    'Total Logs',
+                    logs.length.toString(),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatCard(
+                    context,
+                    'Current Streak',
+                    '$currentStreak days',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatCard(
+                    context,
+                    'Longest Streak',
+                    '$longestStreak days',
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatCard(
+                    context,
+                    'Max Per Day',
+                    maxValue.toString(),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
