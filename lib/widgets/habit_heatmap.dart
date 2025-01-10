@@ -50,16 +50,23 @@ class HabitHeatmap extends StatelessWidget {
     final longestStreak = _getLongestStreak();
 
     return Card(
-      elevation: 2,
+      elevation: 0,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with habit name and actions
-          Padding(
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
@@ -71,6 +78,7 @@ class HabitHeatmap extends StatelessWidget {
                         habit.name,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -96,28 +104,33 @@ class HabitHeatmap extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.calendar_today),
+                    IconButton.filled(
+                      icon: const Icon(Icons.calendar_today, size: 20),
                       onPressed: () => onLogPastDate(DateTime.now()),
                       tooltip: 'Log past date',
                       style: IconButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.check_circle_outline),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      icon: const Icon(Icons.check_circle_outline, size: 20),
                       onPressed: onLogToday,
                       tooltip: 'Log today',
                       style: IconButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      icon: const Icon(Icons.delete_outline, size: 20),
                       onPressed: onDelete,
                       tooltip: 'Delete habit',
                       style: IconButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.error,
+                        backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                        foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
                       ),
                     ),
                   ],
@@ -126,8 +139,8 @@ class HabitHeatmap extends StatelessWidget {
             ),
           ),
           // Stats
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
                 Expanded(
@@ -141,7 +154,7 @@ class HabitHeatmap extends StatelessWidget {
                 Expanded(
                   child: _buildStatCard(
                     context,
-                    'Current Streak',
+                    'Current',
                     '$currentStreak days',
                   ),
                 ),
@@ -149,7 +162,7 @@ class HabitHeatmap extends StatelessWidget {
                 Expanded(
                   child: _buildStatCard(
                     context,
-                    'Longest Streak',
+                    'Longest',
                     '$longestStreak days',
                   ),
                 ),
@@ -164,14 +177,13 @@ class HabitHeatmap extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
           // Heatmap
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: HeatMap(
               datasets: heatmapData,
               colorMode: ColorMode.color,
-              defaultColor: Theme.of(context).colorScheme.surfaceVariant,
+              defaultColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
               textColor: Theme.of(context).colorScheme.onSurface,
               showColorTip: false,
               showText: false,
@@ -184,7 +196,7 @@ class HabitHeatmap extends StatelessWidget {
                 4: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                 5: Theme.of(context).colorScheme.primary.withOpacity(0.7),
                 6: Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                7: Theme.of(context).colorScheme.primary.withOpacity(0.9),
+                7: Theme.of(context).colorScheme.primary,
               },
               onClick: (value) {
                 if (value != null) {
@@ -193,40 +205,39 @@ class HabitHeatmap extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
   Widget _buildStatCard(BuildContext context, String label, String value) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceVariant,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              textAlign: TextAlign.center,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

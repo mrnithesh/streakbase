@@ -37,8 +37,27 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'StreakBase',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6750A4), // Purple primary color
+            brightness: Brightness.light,
+          ),
           useMaterial3: true,
+          cardTheme: const CardTheme(
+            elevation: 0,
+            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+            ),
+          ),
+          appBarTheme: const AppBarTheme(
+            centerTitle: true,
+            elevation: 0,
+          ),
+          dialogTheme: const DialogTheme(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+            ),
+          ),
         ),
         home: const HomeScreen(),
       ),

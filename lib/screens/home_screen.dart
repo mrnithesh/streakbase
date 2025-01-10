@@ -139,19 +139,33 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('StreakBase'),
+        title: Text(
+          'StreakBase',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddHabitDialog(context),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton.filled(
+              icon: const Icon(Icons.add),
+              onPressed: () => _showAddHabitDialog(context),
+              tooltip: 'Add new habit',
+            ),
           ),
         ],
       ),
       body: Consumer<HabitProvider>(
         builder: (context, habitProvider, child) {
           if (habitProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            );
           }
 
           return RefreshIndicator(
@@ -160,8 +174,37 @@ class _HomeScreenState extends State<HomeScreen> {
               await habitProvider.loadLogs();
             },
             child: habitProvider.habits.isEmpty
-                ? const Center(
-                    child: Text('No habits yet. Add one to get started!'),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.track_changes,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No habits yet',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add one to get started!',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton.icon(
+                          onPressed: () => _showAddHabitDialog(context),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Habit'),
+                        ),
+                      ],
+                    ),
                   )
                 : ListView.builder(
                     itemCount: habitProvider.habits.length,
@@ -313,7 +356,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add New Habit'),
+        title: Text(
+          'Add New Habit',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Form(
           key: _formKey,
           child: Column(
@@ -324,6 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Habit Name',
                   hintText: 'Enter habit name',
+                  border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -332,13 +381,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               TextField(
                 controller: _notesController,
                 decoration: const InputDecoration(
                   labelText: 'Notes (optional)',
                   hintText: 'Add notes about this habit',
+                  border: OutlineInputBorder(),
                 ),
+                maxLines: 3,
               ),
             ],
           ),
@@ -346,9 +397,14 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () async {
               if (_formKey.currentState!.validate()) {
                 final habit = Habit(
