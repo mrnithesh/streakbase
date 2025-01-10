@@ -1,0 +1,30 @@
+name: streakbase
+description: An open-source, offline-first habit tracker app that helps you build and maintain streaks.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.6 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  provider: ^6.1.1
+  sqflite: ^2.3.2
+  path: ^1.8.3
+  intl: ^0.19.0
+  flutter_heatmap_calendar: ^1.0.5
+  path_provider: ^2.1.2
+  share_plus: ^7.2.1
+  json_serializable: ^6.7.1
+  json_annotation: ^4.8.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true 
