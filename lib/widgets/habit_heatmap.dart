@@ -262,14 +262,29 @@ class HabitHeatmap extends StatelessWidget {
   }
 
   Widget _buildHeatmap(BuildContext context) {
-    // Define GitHub-style green color levels
-    final colorLevels = {
+    // Define GitHub-style green color levels for light mode
+    final lightColorLevels = {
       1: Color(0xFF9BE9A8),  // Lightest green
       2: Color(0xFF40C463),  // Light green
       3: Color(0xFF30A14E),  // Medium green
       4: Color(0xFF216E39),  // Dark green
       5: Color(0xFF0E4429),  // Darkest green
     };
+
+    // Define reversed green color levels for dark mode
+    final darkColorLevels = {
+      1: Color(0xFF0E4429),  // Darkest green
+      2: Color(0xFF216E39),  // Dark green
+      3: Color(0xFF30A14E),  // Medium green
+      4: Color(0xFF40C463),  // Light green
+      5: Color(0xFF9BE9A8),  // Lightest green
+    };
+
+    // Determine current theme brightness
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // Select appropriate color levels based on theme
+    final colorLevels = isDarkMode ? darkColorLevels : lightColorLevels;
 
     // Map actual log counts to color levels
     final normalizedData = Map<DateTime, int>.fromIterable(
@@ -286,7 +301,7 @@ class HabitHeatmap extends StatelessWidget {
       datasets: normalizedData,
       colorMode: ColorMode.color,
       defaultColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-      textColor: Theme.of(context).colorScheme.onSurfaceVariant, // Use textColor for labels
+      textColor: Theme.of(context).colorScheme.onSurfaceVariant, // Use Theme colors for labels
       showColorTip: false,
       showText: false,
       scrollable: true,
@@ -297,6 +312,8 @@ class HabitHeatmap extends StatelessWidget {
         if (date != null) onDaySelected(date);
       },
       // Removed unsupported parameters
+      // monthLabels: { ... },
+      // weekDaysLabels: [ ... ],
     );
   }
 

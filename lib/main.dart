@@ -39,29 +39,29 @@ class MyApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context); // Listen to ThemeProvider
 
     final lightColorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF00796B), // Teal as base
-      primary: const Color(0xFF00796B),   // Primary color
-      secondary: const Color(0xFF004D40), // Dark teal as secondary color
+      seedColor: const Color(0xFF1976D2), // Blue as base
+      primary: const Color(0xFF1976D2),   // Primary color
+      secondary: const Color(0xFF1565C0), // Dark blue as secondary color
       surface: const Color(0xFFF5F5F5),   // Light grey for surface
       background: const Color(0xFFFFFFFF), // White background
       error: const Color(0xFFD32F2F),     // Red for errors
     ).copyWith(
-      primaryContainer: const Color(0xFFB2DFDB), // Light teal for containers
-      secondaryContainer: const Color(0xFF004D40), // Dark teal for containers
+      primaryContainer: const Color(0xFFBBDEFB), // Light blue for containers
+      secondaryContainer: const Color(0xFF1565C0), // Dark blue for containers
       onPrimary: Colors.white, // Ensure good contrast for buttons
     );
 
     final darkColorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF00796B),
+      seedColor: const Color(0xFF1976D2), // Blue as base
       brightness: Brightness.dark,
-      primary: const Color(0xFF80CBC4),
-      secondary: const Color(0xFF004D40),
-      surface: const Color(0xFF303030),
+      primary: const Color(0xFF90CAF9),
+      secondary: const Color(0xFF1E88E5),
+      surface: const Color.fromARGB(255, 28, 27, 27),
       background: const Color(0xFF121212),
       error: const Color(0xFFCF6679),
     ).copyWith(
-      primaryContainer: const Color(0xFF004D40),
-      secondaryContainer: const Color(0xFF80CBC4),
+      primaryContainer: const Color(0xFF1565C0),
+      secondaryContainer: const Color(0xFF90CAF9),
       onPrimary: Colors.black,
     );
 
