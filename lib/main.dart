@@ -33,15 +33,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lightColorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF37474F), // Blue-gray as base
-      primary: const Color(0xFF37474F),
-      secondary: const Color(0xFF78909C),
-      surface: const Color(0xFFF5F5F5),
-      background: const Color(0xFFFFFFFF),
-      error: const Color(0xFFE57373),
+      seedColor: const Color(0xFF00796B), // Teal as base
+      primary: const Color(0xFF00796B),   // Primary color
+      secondary: const Color(0xFF004D40), // Dark teal as secondary color
+      surface: const Color(0xFFF5F5F5),   // Light grey for surface
+      background: const Color(0xFFFFFFFF), // White background
+      error: const Color(0xFFD32F2F),     // Red for errors
     ).copyWith(
-      primaryContainer: const Color(0xFFECEFF1),
-      secondaryContainer: const Color(0xFFCFD8DC),
+      primaryContainer: const Color(0xFFB2DFDB), // Light teal for containers
+      secondaryContainer: const Color(0xFF004D40), // Dark teal for containers
       onPrimary: Colors.white, // Ensure good contrast for buttons
     );
 

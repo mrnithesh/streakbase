@@ -262,39 +262,31 @@ class HabitHeatmap extends StatelessWidget {
   }
 
   Widget _buildHeatmap(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final heatmapData = _getHeatmapData();
-    
-    // Find the maximum number of logs per day (used for scaling)
-    final maxLogsPerDay = heatmapData.values.fold(0, (max, value) => value > max ? value : max);
-    
-    // Define fixed color levels regardless of max logs
-    // This ensures consistent visualization across all days
+    // Define GitHub-style green color levels
     final colorLevels = {
-      1: colorScheme.primary.withOpacity(0.2),  // 1 log = lightest
-      2: colorScheme.primary.withOpacity(0.35), // 2 logs
-      3: colorScheme.primary.withOpacity(0.5),  // 3 logs
-      4: colorScheme.primary.withOpacity(0.65), // 4 logs
-      5: colorScheme.primary.withOpacity(0.8),  // 5 logs
-      6: colorScheme.primary.withOpacity(0.9),  // 6+ logs = darkest
+      1: Color(0xFF9BE9A8),  // Lightest green
+      2: Color(0xFF40C463),  // Light green
+      3: Color(0xFF30A14E),  // Medium green
+      4: Color(0xFF216E39),  // Dark green
+      5: Color(0xFF0E4429),  // Darkest green
     };
 
     // Map actual log counts to color levels
     final normalizedData = Map<DateTime, int>.fromIterable(
-      heatmapData.keys,
+      _getHeatmapData().keys,
       key: (k) => k as DateTime,
       value: (k) {
-        final count = heatmapData[k as DateTime]!;
-        // Cap the count at 6 for visualization purposes
-        return count.clamp(1, 6);
+        final count = _getHeatmapData()[k as DateTime]!;
+        // Cap the count at 5 for visualization purposes
+        return count.clamp(1, 5);
       },
     );
 
     return HeatMap(
       datasets: normalizedData,
       colorMode: ColorMode.color,
-      defaultColor: colorScheme.surfaceVariant.withOpacity(0.1),
-      textColor: Colors.transparent,
+      defaultColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      textColor: Theme.of(context).colorScheme.onSurfaceVariant, // Use textColor for labels
       showColorTip: false,
       showText: false,
       scrollable: true,
@@ -304,6 +296,7 @@ class HabitHeatmap extends StatelessWidget {
       onClick: (date) {
         if (date != null) onDaySelected(date);
       },
+      // Removed unsupported parameters
     );
   }
 
