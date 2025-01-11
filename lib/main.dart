@@ -42,6 +42,7 @@ class MyApp extends StatelessWidget {
     ).copyWith(
       primaryContainer: const Color(0xFFECEFF1),
       secondaryContainer: const Color(0xFFCFD8DC),
+      onPrimary: Colors.white, // Ensure good contrast for buttons
     );
 
     return MaterialApp(

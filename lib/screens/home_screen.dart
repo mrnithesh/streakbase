@@ -173,6 +173,31 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Add this helper method
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError 
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.primary,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(milliseconds: 1500), // Reduced from default 4000ms
+        margin: const EdgeInsets.all(8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        action: SnackBarAction(
+          label: 'OK',  // Changed from 'Dismiss' to be more concise
+          textColor: Theme.of(context).colorScheme.onError,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -257,6 +282,10 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.add),
               onPressed: () => _showAddHabitDialog(context, _selectedFilterCategory),
               tooltip: 'Add new habit',
+              style: IconButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              ),
             ),
           ),
         ],
@@ -374,6 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
       completed: true,
     );
     await context.read<HabitProvider>().logHabit(log);
+    _showSnackBar('Habit logged successfully');
   }
 
   Future<void> _showLogHabitDialog(BuildContext context, Habit habit, [DateTime? selectedDate]) async {
@@ -484,6 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     await context.read<HabitProvider>().logHabit(log);
                   }
                   Navigator.of(context).pop();
+                  _showSnackBar('Added ${completionCount} log${completionCount > 1 ? 's' : ''}');
                 }
               },
               child: const Text('Log'),
@@ -515,6 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed == true) {
       await context.read<HabitProvider>().deleteHabit(habit.id!);
+      _showSnackBar('Habit deleted', isError: true);
     }
   }
 
@@ -826,6 +858,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         final updatedHabit = habit.copyWith(category: tempCategory);
                         await context.read<HabitProvider>().updateHabit(updatedHabit);
                         Navigator.of(dialogContext).pop();
+                        _showSnackBar('Category updated');
                       },
                       child: const Text('Save'),
                     ),
