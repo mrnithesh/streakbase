@@ -144,6 +144,16 @@ class HabitHeatmap extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton.filled(
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      onPressed: onDelete,
+                      tooltip: 'Delete habit',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                        foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
                       icon: const Icon(Icons.calendar_today, size: 20),
                       onPressed: () => onLogPastDate(DateTime.now()),
                       tooltip: 'Log past date',
@@ -160,16 +170,6 @@ class HabitHeatmap extends StatelessWidget {
                       style: IconButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filled(
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      onPressed: onDelete,
-                      tooltip: 'Delete habit',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                        foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
                       ),
                     ),
                   ],
@@ -219,30 +219,7 @@ class HabitHeatmap extends StatelessWidget {
           // Heatmap
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: HeatMap(
-              datasets: heatmapData,
-              colorMode: ColorMode.color,
-              defaultColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-              textColor: Theme.of(context).colorScheme.onSurface,
-              showColorTip: false,
-              showText: false,
-              scrollable: true,
-              size: 35,
-              colorsets: {
-                1: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                2: Theme.of(context).colorScheme.primary.withOpacity(0.4),
-                3: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                4: Theme.of(context).colorScheme.primary.withOpacity(0.6),
-                5: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                6: Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                7: Theme.of(context).colorScheme.primary,
-              },
-              onClick: (value) {
-                if (value != null) {
-                  onDaySelected(value);
-                }
-              },
-            ),
+            child: _buildHeatmap(context),
           ),
         ],
       ),
@@ -253,7 +230,10 @@ class HabitHeatmap extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.1),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -278,6 +258,52 @@ class HabitHeatmap extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeatmap(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final heatmapData = _getHeatmapData();
+    
+    // Find the maximum number of logs per day (used for scaling)
+    final maxLogsPerDay = heatmapData.values.fold(0, (max, value) => value > max ? value : max);
+    
+    // Define fixed color levels regardless of max logs
+    // This ensures consistent visualization across all days
+    final colorLevels = {
+      1: colorScheme.primary.withOpacity(0.2),  // 1 log = lightest
+      2: colorScheme.primary.withOpacity(0.35), // 2 logs
+      3: colorScheme.primary.withOpacity(0.5),  // 3 logs
+      4: colorScheme.primary.withOpacity(0.65), // 4 logs
+      5: colorScheme.primary.withOpacity(0.8),  // 5 logs
+      6: colorScheme.primary.withOpacity(0.9),  // 6+ logs = darkest
+    };
+
+    // Map actual log counts to color levels
+    final normalizedData = Map<DateTime, int>.fromIterable(
+      heatmapData.keys,
+      key: (k) => k as DateTime,
+      value: (k) {
+        final count = heatmapData[k as DateTime]!;
+        // Cap the count at 6 for visualization purposes
+        return count.clamp(1, 6);
+      },
+    );
+
+    return HeatMap(
+      datasets: normalizedData,
+      colorMode: ColorMode.color,
+      defaultColor: colorScheme.surfaceVariant.withOpacity(0.1),
+      textColor: Colors.transparent,
+      showColorTip: false,
+      showText: false,
+      scrollable: true,
+      size: 32,
+      margin: const EdgeInsets.all(2),
+      colorsets: colorLevels,
+      onClick: (date) {
+        if (date != null) onDaySelected(date);
+      },
     );
   }
 

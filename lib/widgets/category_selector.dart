@@ -49,8 +49,17 @@ class CategorySelector extends StatelessWidget {
                   label: const Text('None'),
                   selected: selectedCategory == null,
                   onSelected: (_) => onCategorySelected(null),
-                  backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                  backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.1),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
+                  ),
                   selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                  showCheckmark: false,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  labelStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: selectedCategory == null ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
                 // Category options
                 ...categoryProvider.categories.map((category) {
