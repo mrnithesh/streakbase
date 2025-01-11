@@ -5,12 +5,14 @@ import '../providers/category_provider.dart';
 
 class CategorySelector extends StatelessWidget {
   final Category? selectedCategory;
-  final ValueChanged<Category?> onCategorySelected;
+  final Function(Category?) onCategorySelected;
+  final VoidCallback? onAddCategory;
 
   const CategorySelector({
     Key? key,
     this.selectedCategory,
     required this.onCategorySelected,
+    this.onAddCategory,
   }) : super(key: key);
 
   @override
@@ -29,11 +31,12 @@ class CategorySelector extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                TextButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Category'),
-                  onPressed: () => _showAddCategoryDialog(context),
-                ),
+                if (onAddCategory != null)
+                  TextButton.icon(
+                    onPressed: onAddCategory,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Category'),
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -74,133 +77,140 @@ class CategorySelector extends StatelessWidget {
     );
   }
 
-  void _showAddCategoryDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    Color selectedColor = Colors.blue;
-    IconData selectedIcon = Icons.star;
-
-    showDialog(
+  static Future<void> showAddCategoryDialog(BuildContext context, [VoidCallback? onComplete]) {
+    return showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add Category'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Category Name',
-                  border: OutlineInputBorder(),
+      builder: (dialogContext) {
+        final nameController = TextEditingController();
+        Color selectedColor = Colors.blue;
+        IconData selectedIcon = Icons.star;
+
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Add Category'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Category Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  autofocus: true,
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Color',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            Colors.blue,
-                            Colors.red,
-                            Colors.green,
-                            Colors.orange,
-                            Colors.purple,
-                            Colors.teal,
-                          ].map((color) {
-                            return InkWell(
-                              onTap: () => setState(() => selectedColor = color),
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: color,
-                                child: selectedColor == color
-                                    ? const Icon(Icons.check, color: Colors.white, size: 16)
-                                    : null,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Icon',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            Icons.star,
-                            Icons.favorite,
-                            Icons.work,
-                            Icons.school,
-                            Icons.fitness_center,
-                            Icons.book,
-                          ].map((icon) {
-                            return InkWell(
-                              onTap: () => setState(() => selectedIcon = icon),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: selectedIcon == icon
-                                      ? selectedColor.withOpacity(0.1)
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Color',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              Colors.blue,
+                              Colors.red,
+                              Colors.green,
+                              Colors.orange,
+                              Colors.purple,
+                              Colors.teal,
+                            ].map((color) {
+                              return InkWell(
+                                onTap: () => setState(() => selectedColor = color),
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: color,
+                                  child: selectedColor == color
+                                      ? const Icon(Icons.check, color: Colors.white, size: 16)
                                       : null,
-                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(
-                                  icon,
-                                  color: selectedColor,
-                                  size: 24,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Icon',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              Icons.star,
+                              Icons.favorite,
+                              Icons.work,
+                              Icons.school,
+                              Icons.fitness_center,
+                              Icons.book,
+                            ].map((icon) {
+                              return InkWell(
+                                onTap: () => setState(() => selectedIcon = icon),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: selectedIcon == icon
+                                        ? selectedColor.withOpacity(0.1)
+                                        : null,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    icon,
+                                    color: selectedColor,
+                                    size: 24,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  if (nameController.text.isNotEmpty) {
+                    await context.read<CategoryProvider>().addCategory(
+                      Category(
+                        name: nameController.text.trim(),
+                        color: selectedColor,
+                        icon: selectedIcon,
+                      ),
+                    );
+                    Navigator.of(dialogContext).pop(); // Close the dialog first
+                    if (onComplete != null) {
+                      onComplete(); // Then call the completion callback
+                    }
+                  }
+                },
+                child: const Text('Add'),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  final category = Category(
-                    name: nameController.text,
-                    color: selectedColor,
-                    icon: selectedIcon,
-                  );
-                  context.read<CategoryProvider>().addCategory(category);
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -397,4 +407,4 @@ class CategorySelector extends StatelessWidget {
       ),
     );
   }
-} 
+}

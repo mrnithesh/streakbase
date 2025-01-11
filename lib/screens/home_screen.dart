@@ -657,39 +657,52 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Filter Habits'),
-        content: Consumer<CategoryProvider>(
-          builder: (context, categoryProvider, child) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Clear filter option
-                ListTile(
-                  leading: const Icon(Icons.clear_all),
-                  title: const Text('All Habits'),
-                  selected: _selectedFilterCategory == null,
-                  onTap: () {
-                    setState(() => _selectedFilterCategory = null);
-                    Navigator.pop(context);
-                  },
-                ),
-                const Divider(),
-                // Category options
-                ...categoryProvider.categories.map((category) {
-                  return ListTile(
-                    leading: Icon(category.icon, color: category.color),
-                    title: Text(category.name),
-                    selected: _selectedFilterCategory?.id == category.id,
+        content: SingleChildScrollView(
+          child: Consumer<CategoryProvider>(
+            builder: (context, categoryProvider, child) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Clear filter option
+                  ListTile(
+                    leading: const Icon(Icons.clear_all),
+                    title: const Text('All Habits'),
+                    selected: _selectedFilterCategory == null,
                     onTap: () {
-                      setState(() => _selectedFilterCategory = category);
+                      setState(() => _selectedFilterCategory = null);
                       Navigator.pop(context);
                     },
-                  );
-                }),
-              ],
-            );
-          },
+                  ),
+                  const Divider(),
+                  // Category options
+                  ...categoryProvider.categories.map((category) {
+                    return ListTile(
+                      leading: Icon(category.icon, color: category.color),
+                      title: Text(category.name),
+                      selected: _selectedFilterCategory?.id == category.id,
+                      onTap: () {
+                        setState(() => _selectedFilterCategory = category);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }),
+                ],
+              );
+            },
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              CategorySelector.showAddCategoryDialog(context, () {
+                _showFilterDialog(context);
+              });
+            },
+            child: const Text('Add Category'),
+          ),
+        ],
       ),
     );
   }
@@ -773,31 +786,53 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (dialogContext) {
         Category? tempCategory = habit.category;
-        return StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: const Text('Edit Category'),
-            content: CategorySelector(
-              selectedCategory: tempCategory,
-              onCategorySelected: (newCategory) {
-                setState(() {
-                  tempCategory = newCategory;
-                });
-              },
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Edit Category', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                CategorySelector(
+                  selectedCategory: tempCategory,
+                  onCategorySelected: (newCategory) {
+                    setState(() {
+                      tempCategory = newCategory;
+                    });
+                  },
+                  onAddCategory: () {
+                    Navigator.pop(context);
+                    CategorySelector.showAddCategoryDialog(context, () {
+                      _showEditHabitCategory(habit);
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () async {
+                        final updatedHabit = habit.copyWith(category: tempCategory);
+                        await context.read<HabitProvider>().updateHabit(updatedHabit);
+                        Navigator.of(dialogContext).pop();
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  final updatedHabit = habit.copyWith(category: tempCategory);
-                  await context.read<HabitProvider>().updateHabit(updatedHabit);
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Save'),
-              ),
-            ],
           ),
         );
       },
