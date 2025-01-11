@@ -277,19 +277,16 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => _showFilterDialog(context),
             tooltip: 'Filter habits',
           ),
-          // Add habit button
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton.filled(
-              icon: const Icon(Icons.add),
-              onPressed: () => _showAddHabitDialog(context, _selectedFilterCategory),
-              tooltip: 'Add new habit',
-              style: IconButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              ),
-            ),
-          ),
+          // Remove the Add Habit button from AppBar actions
+          // IconButton.filled(
+          //   icon: const Icon(Icons.add),
+          //   onPressed: () => _showAddHabitDialog(context, _selectedFilterCategory),
+          //   tooltip: 'Add new habit',
+          //   style: IconButton.styleFrom(
+          //     backgroundColor: Theme.of(context).colorScheme.primary,
+          //     foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          //   ),
+          // ),
         ],
         bottom: _selectedFilterCategory != null ? PreferredSize(
           preferredSize: const Size.fromHeight(48),
@@ -423,6 +420,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
           );
         },
+      ),
+      // Add Floating Action Button here
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddHabitDialog(context, _selectedFilterCategory),
+        tooltip: 'Add Habit',
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        child: const Icon(Icons.add),
       ),
     );
   }
