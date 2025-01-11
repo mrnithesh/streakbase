@@ -604,6 +604,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         selectedCategory = category;
                       });
                     },
+                    onAddCategory: () {
+                      CategorySelector.showAddCategoryDialog(context, () {
+                        // Preserve the dialog state and update categories
+                        setState(() {});
+                      });
+                    },
                   ),
                 ],
               ),
@@ -630,6 +636,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                   await context.read<HabitProvider>().addHabit(habit);
                   Navigator.of(context).pop();
+                  _showSnackBar('Habit created successfully');
                 }
               },
               child: const Text('Add'),
