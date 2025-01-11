@@ -98,13 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       FilledButton.icon(
                         onPressed: () async {
                           Navigator.of(context).pop();
-                          final now = date;
-                          final log = HabitLog(
-                            habitId: habit.id!,
-                            date: now,
-                            completed: true,
-                          );
-                          await context.read<HabitProvider>().logHabit(log);
+                          _showLogHabitDialog(context, habit, date);
                         },
                         icon: const Icon(Icons.add, size: 16),
                         label: const Text('Add Log'),
@@ -113,36 +107,50 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 )
               else
-                ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: habitLogs.length,
-                  itemBuilder: (context, index) {
-                    final log = habitLogs[index];
-                    return ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        log.completed ? Icons.check_circle : Icons.circle_outlined,
-                        color: log.completed ? Colors.green : Colors.grey,
-                        size: 20,
-                      ),
-                      title: Text(
-                        DateFormat('h:mm a').format(log.date),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      subtitle: log.notes != null ? Text(
-                        log.notes!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ) : null,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, size: 20),
-                        onPressed: () async {
-                          await context.read<HabitProvider>().deleteLog(log.id!);
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    );
-                  },
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: habitLogs.length,
+                      itemBuilder: (context, index) {
+                        final log = habitLogs[index];
+                        return ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            log.completed ? Icons.check_circle : Icons.circle_outlined,
+                            color: log.completed ? Colors.green : Colors.grey,
+                            size: 20,
+                          ),
+                          title: Text(
+                            DateFormat('h:mm a').format(log.date),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          subtitle: log.notes != null ? Text(
+                            log.notes!,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ) : null,
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, size: 20),
+                            onPressed: () async {
+                              await context.read<HabitProvider>().deleteLog(log.id!);
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        _showLogHabitDialog(context, habit, date);
+                      },
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Add Another Log'),
+                    ),
+                  ],
                 ),
             ],
           ),
@@ -367,8 +375,8 @@ class _HomeScreenState extends State<HomeScreen> {
     await context.read<HabitProvider>().logHabit(log);
   }
 
-  Future<void> _showLogHabitDialog(BuildContext context, Habit habit) async {
-    _selectedDate = null;
+  Future<void> _showLogHabitDialog(BuildContext context, Habit habit, [DateTime? selectedDate]) async {
+    _selectedDate = selectedDate;
     _notesController.clear();
     TimeOfDay selectedTime = TimeOfDay.now();
     int completionCount = 1;
@@ -377,27 +385,28 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Log Past Date'),
+          title: Text(selectedDate != null ? 'Add Log' : 'Log Past Date'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                title: Text(_selectedDate == null ? 'Select date' : _formatDate(_selectedDate)),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate ?? DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      _selectedDate = picked;
-                    });
-                  }
-                },
-              ),
+              if (selectedDate == null)
+                ListTile(
+                  title: Text(_selectedDate == null ? 'Select date' : _formatDate(_selectedDate)),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _selectedDate = picked;
+                      });
+                    }
+                  },
+                ),
               ListTile(
                 title: Text('Time: ${selectedTime.format(context)}'),
                 trailing: const Icon(Icons.access_time),
@@ -453,12 +462,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextButton(
               onPressed: () async {
-                if (_selectedDate != null) {
-                  final now = _selectedDate!;
+                final date = selectedDate ?? _selectedDate;
+                if (date != null) {
                   final dateTime = DateTime(
-                    now.year,
-                    now.month,
-                    now.day,
+                    date.year,
+                    date.month,
+                    date.day,
                     selectedTime.hour,
                     selectedTime.minute,
                   );
@@ -604,20 +613,34 @@ class _HomeScreenState extends State<HomeScreen> {
     final sortedLogs = logs.where((log) => log.completed).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
-    int streak = 0;
-    DateTime? lastDate;
+    if (sortedLogs.isEmpty) return 0;
 
-    for (var log in sortedLogs) {
-      final logDate = DateTime(log.date.year, log.date.month, log.date.day);
+    // Check if the streak is current (has a log for today or yesterday)
+    final today = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
+    final latestLogDate = DateTime(
+      sortedLogs.first.date.year,
+      sortedLogs.first.date.month,
+      sortedLogs.first.date.day,
+    );
+    final difference = today.difference(latestLogDate).inDays;
+    if (difference > 1) return 0; // Streak is broken if no log for today or yesterday
+
+    int streak = 1;
+    DateTime lastDate = latestLogDate;
+
+    for (var i = 1; i < sortedLogs.length; i++) {
+      final logDate = DateTime(
+        sortedLogs[i].date.year,
+        sortedLogs[i].date.month,
+        sortedLogs[i].date.day,
+      );
       
-      if (lastDate == null) {
-        lastDate = logDate;
-        streak = 1;
-        continue;
-      }
-
-      final difference = lastDate.difference(logDate).inDays;
-      if (difference == 1) {
+      final dayDifference = lastDate.difference(logDate).inDays;
+      if (dayDifference == 1) {
         streak++;
         lastDate = logDate;
       } else {
