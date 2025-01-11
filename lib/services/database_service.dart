@@ -7,6 +7,13 @@ import '../models/habit.dart';
 import '../models/habit_log.dart';
 import '../models/category.dart';
 import '../providers/category_provider.dart';
+import 'package:streakbase/utils/exceptions.dart';  // Add this import
+
+class DatabaseException implements Exception {
+  final String message;
+  final String? details;
+  DatabaseException(this.message, [this.details]);
+}
 
 class DatabaseService {
   static Database? _database;
@@ -105,13 +112,29 @@ class DatabaseService {
   }
 
   Future<void> initialize() async {
-    await database;
+    try {
+      await database;
+    } catch (e) {
+      throw DatabaseException('Failed to initialize database', e.toString());
+    }
   }
 
   Future<void> close() async {
     final db = await database;
     await db.close();
     _database = null;
+  }
+
+  Future<T> runInTransaction<T>(Future<T> Function(Database db) action) async {
+    try {
+      final db = await database;
+      return await db.transaction((txn) async {
+        // Convert Transaction to Database for the action
+        return await action(txn as Database);
+      });
+    } catch (e) {
+      throw DatabaseException('Transaction failed', e.toString());
+    }
   }
 
   // CRUD operations for habits
@@ -324,4 +347,4 @@ class DatabaseService {
       await backupFile.copy(dbPath);
     }
   }
-} 
+}

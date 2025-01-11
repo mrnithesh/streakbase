@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:streakbase/models/habit.dart';
 import 'package:streakbase/models/habit_log.dart';
 import 'package:streakbase/services/database_service.dart';
+import 'package:streakbase/utils/exceptions.dart';
 
 class HabitProvider with ChangeNotifier {
   final DatabaseService _db;
@@ -58,13 +59,14 @@ class HabitProvider with ChangeNotifier {
 
   Future<void> addHabit(Habit habit) async {
     try {
+      _validateHabit(habit);
       final id = await _db.insertHabit(habit);
       final newHabit = habit.copyWith(id: id);
       _habits.add(newHabit);
       notifyListeners();
       await loadLogs();
     } catch (e) {
-      rethrow;
+      throw HabitException('Failed to add habit', e.toString());
     }
   }
 
@@ -135,4 +137,16 @@ class HabitProvider with ChangeNotifier {
       return null;
     }
   }
-} 
+
+  void _validateHabit(Habit habit) {
+    if (habit.name.trim().isEmpty) {
+      throw HabitException('Habit name cannot be empty');
+    }
+    if (habit.name.length > 50) {
+      throw HabitException('Habit name too long (max 50 characters)');
+    }
+    if (habit.notes != null && habit.notes!.length > 500) {
+      throw HabitException('Notes too long (max 500 characters)');
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'category.dart';
+import '../utils/exceptions.dart';  // Add this import
 
 class Habit {
   final int? id;
@@ -27,13 +28,19 @@ class Habit {
   }
 
   factory Habit.fromJson(Map<String, dynamic> json) {
-    return Habit(
-      id: json['id'] as int?,
-      name: json['name'] as String,
-      startDate: json['start_date'] != null ? DateTime.parse(json['start_date'] as String) : null,
-      notes: json['notes'] as String?,
-      // Category will be set later by the provider
-    );
+    try {
+      final habit = Habit(
+        id: json['id'] as int?,
+        name: json['name'] as String,
+        startDate: json['start_date'] != null ? DateTime.parse(json['start_date'] as String) : null,
+        notes: json['notes'] as String?,
+        // Category will be set later by the provider
+      );
+      habit.validate();
+      return habit;
+    } catch (e) {
+      throw ValidationException('Invalid habit data: ${e.toString()}');
+    }
   }
 
   Habit copyWith({
@@ -51,4 +58,19 @@ class Habit {
       category: category ?? this.category,
     );
   }
-} 
+
+  void validate() {
+    if (name.trim().isEmpty) {
+      throw ValidationException('Habit name cannot be empty');
+    }
+    if (name.length > 50) {
+      throw ValidationException('Habit name too long');
+    }
+    if (notes != null && notes!.length > 500) {
+      throw ValidationException('Notes too long');
+    }
+    if (startDate != null && startDate!.isAfter(DateTime.now())) {
+      throw ValidationException('Start date cannot be in the future');
+    }
+  }
+}

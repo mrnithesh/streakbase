@@ -8,6 +8,7 @@ import 'package:streakbase/providers/category_provider.dart';
 import 'package:streakbase/widgets/habit_heatmap.dart';
 import 'package:streakbase/widgets/category_selector.dart';
 import 'package:intl/intl.dart';
+import 'package:streakbase/utils/exceptions.dart';  // Add this import
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -196,6 +197,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleError(Function action, String errorMessage) async {
+    try {
+      await action();
+    } catch (e) {
+      _showSnackBar(
+        errorMessage + (e is HabitException ? ': ${e.message}' : ''),
+        isError: true,
+      );
+    }
   }
 
   @override
@@ -397,13 +409,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logHabit(BuildContext context, Habit habit) async {
-    final log = HabitLog(
-      habitId: habit.id!,
-      date: DateTime.now(),
-      completed: true,
+    await _handleError(
+      () async {
+        final log = HabitLog(
+          habitId: habit.id!,
+          date: DateTime.now(),
+          completed: true,
+        );
+        await context.read<HabitProvider>().logHabit(log);
+        _showSnackBar('Habit logged successfully');
+      },
+      'Failed to log habit',
     );
-    await context.read<HabitProvider>().logHabit(log);
-    _showSnackBar('Habit logged successfully');
   }
 
   Future<void> _showLogHabitDialog(BuildContext context, Habit habit, [DateTime? selectedDate]) async {
@@ -628,15 +645,20 @@ class _HomeScreenState extends State<HomeScreen> {
             FilledButton(
               onPressed: () async {
                 if (_formKey.currentState!.validate()) {
-                  final habit = Habit(
-                    name: _nameController.text,
-                    startDate: DateTime.now(),
-                    notes: _notesController.text.isEmpty ? null : _notesController.text,
-                    category: selectedCategory,
+                  await _handleError(
+                    () async {
+                      final habit = Habit(
+                        name: _nameController.text.trim(),
+                        startDate: DateTime.now(),
+                        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+                        category: selectedCategory,
+                      );
+                      await context.read<HabitProvider>().addHabit(habit);
+                      Navigator.of(context).pop();
+                      _showSnackBar('Habit created successfully');
+                    },
+                    'Failed to create habit',
                   );
-                  await context.read<HabitProvider>().addHabit(habit);
-                  Navigator.of(context).pop();
-                  _showSnackBar('Habit created successfully');
                 }
               },
               child: const Text('Add'),
