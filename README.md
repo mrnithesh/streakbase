@@ -1,5 +1,8 @@
 # StreakBase
 
+[![License](https://img.shields.io/github/license/mrnithesh/streakbase)](LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/mrnithesh/streakbase/flutter.yml)](https://github.com/mrnithesh/streakbase/actions)
+
 An open-source, offline-first habit tracker app that helps you build and maintain streaks.
 
 ## Features
@@ -43,6 +46,10 @@ flutter build apk  # For Android
 flutter build ios  # For iOS
 ```
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
