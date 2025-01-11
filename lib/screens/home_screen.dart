@@ -4,6 +4,7 @@ import 'package:streakbase/models/habit.dart';
 import 'package:streakbase/models/habit_log.dart';
 import 'package:streakbase/models/category.dart';
 import 'package:streakbase/providers/habit_provider.dart';
+import 'package:streakbase/providers/category_provider.dart';
 import 'package:streakbase/widgets/habit_heatmap.dart';
 import 'package:streakbase/widgets/category_selector.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final _nameController = TextEditingController();
   final _notesController = TextEditingController();
   DateTime? _selectedDate;
+  Category? _selectedFilterCategory;
+  String _sortBy = 'name'; // 'name', 'date', 'streak'
 
   @override
   void initState() {
@@ -173,6 +176,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          // Filter button
+          IconButton(
+            icon: Icon(
+              Icons.filter_list,
+              color: _selectedFilterCategory != null ? Theme.of(context).colorScheme.primary : null,
+            ),
+            onPressed: () => _showFilterDialog(context),
+            tooltip: 'Filter habits',
+          ),
+          // Sort button
+          IconButton(
+            icon: const Icon(Icons.sort),
+            onPressed: () => _showSortDialog(context),
+            tooltip: 'Sort habits',
+          ),
+          // Add habit button
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton.filled(
@@ -193,12 +212,38 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
+          // Filter and sort habits
+          var filteredHabits = habitProvider.habits;
+          if (_selectedFilterCategory != null) {
+            filteredHabits = filteredHabits.where((h) => h.category?.id == _selectedFilterCategory!.id).toList();
+          }
+
+          // Sort habits
+          filteredHabits.sort((a, b) {
+            switch (_sortBy) {
+              case 'name':
+                return a.name.compareTo(b.name);
+              case 'date':
+                final aDate = a.startDate ?? DateTime.now();
+                final bDate = b.startDate ?? DateTime.now();
+                return bDate.compareTo(aDate);
+              case 'streak':
+                final aLogs = habitProvider.getLogsForHabit(a.id!);
+                final bLogs = habitProvider.getLogsForHabit(b.id!);
+                final aStreak = _calculateStreak(aLogs);
+                final bStreak = _calculateStreak(bLogs);
+                return bStreak.compareTo(aStreak);
+              default:
+                return 0;
+            }
+          });
+
           return RefreshIndicator(
             onRefresh: () async {
               await habitProvider.loadHabits();
               await habitProvider.loadLogs();
             },
-            child: habitProvider.habits.isEmpty
+            child: filteredHabits.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -210,14 +255,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No habits yet',
+                          _selectedFilterCategory != null
+                              ? 'No habits in this category'
+                              : 'No habits yet',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Add one to get started!',
+                          _selectedFilterCategory != null
+                              ? 'Add a habit to this category'
+                              : 'Add one to get started!',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
@@ -232,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 : ListView.builder(
-                    itemCount: habitProvider.habits.length,
+                    itemCount: filteredHabits.length,
                     itemBuilder: (context, index) {
-                      final habit = habitProvider.habits[index];
+                      final habit = filteredHabits[index];
                       final logs = habitProvider.getLogsForHabit(habit.id!);
                       
                       return HabitHeatmap(
@@ -457,6 +506,119 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               },
               child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _calculateStreak(List<HabitLog> logs) {
+    if (logs.isEmpty) return 0;
+
+    final sortedLogs = logs.where((log) => log.completed).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    int streak = 0;
+    DateTime? lastDate;
+
+    for (var log in sortedLogs) {
+      final logDate = DateTime(log.date.year, log.date.month, log.date.day);
+      
+      if (lastDate == null) {
+        lastDate = logDate;
+        streak = 1;
+        continue;
+      }
+
+      final difference = lastDate.difference(logDate).inDays;
+      if (difference == 1) {
+        streak++;
+        lastDate = logDate;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  void _showFilterDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Filter Habits'),
+        content: Consumer<CategoryProvider>(
+          builder: (context, categoryProvider, child) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Clear filter option
+                ListTile(
+                  leading: const Icon(Icons.clear_all),
+                  title: const Text('All Habits'),
+                  selected: _selectedFilterCategory == null,
+                  onTap: () {
+                    setState(() => _selectedFilterCategory = null);
+                    Navigator.pop(context);
+                  },
+                ),
+                const Divider(),
+                // Category options
+                ...categoryProvider.categories.map((category) {
+                  return ListTile(
+                    leading: Icon(category.icon, color: category.color),
+                    title: Text(category.name),
+                    selected: _selectedFilterCategory?.id == category.id,
+                    onTap: () {
+                      setState(() => _selectedFilterCategory = category);
+                      Navigator.pop(context);
+                    },
+                  );
+                }),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showSortDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sort Habits'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.sort_by_alpha),
+              title: const Text('By Name'),
+              selected: _sortBy == 'name',
+              onTap: () {
+                setState(() => _sortBy = 'name');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: const Text('By Date Added'),
+              selected: _sortBy == 'date',
+              onTap: () {
+                setState(() => _sortBy = 'date');
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.local_fire_department),
+              title: const Text('By Current Streak'),
+              selected: _sortBy == 'streak',
+              onTap: () {
+                setState(() => _sortBy = 'streak');
+                Navigator.pop(context);
+              },
             ),
           ],
         ),

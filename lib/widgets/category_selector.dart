@@ -20,11 +20,21 @@ class CategorySelector extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Category',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Category',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Category'),
+                  onPressed: () => _showAddCategoryDialog(context),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -50,21 +60,12 @@ class CategorySelector extends StatelessWidget {
                     label: Text(category.name),
                     selected: selectedCategory?.id == category.id,
                     onSelected: (_) => onCategorySelected(category),
+                    onDeleted: () => _showCategoryOptionsDialog(context, category),
                     backgroundColor: category.color.withOpacity(0.1),
                     selectedColor: category.color.withOpacity(0.2),
                     checkmarkColor: category.color,
                   );
                 }),
-                // Add category button
-                ActionChip(
-                  avatar: Icon(
-                    Icons.add,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  label: const Text('Add Category'),
-                  onPressed: () => _showAddCategoryDialog(context),
-                ),
               ],
             ),
           ],
@@ -196,6 +197,200 @@ class CategorySelector extends StatelessWidget {
                 }
               },
               child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCategoryOptionsDialog(BuildContext context, Category category) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Manage ${category.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Category'),
+              onTap: () {
+                Navigator.pop(context);
+                _showEditCategoryDialog(context, category);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+              title: Text('Delete Category', 
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete Category'),
+                    content: Text(
+                      'Are you sure you want to delete "${category.name}"? '
+                      'Habits in this category will be moved to "No Category".',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    await context.read<CategoryProvider>().deleteCategory(category.id!);
+                    if (selectedCategory?.id == category.id) {
+                      onCategorySelected(null);
+                    }
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditCategoryDialog(BuildContext context, Category category) {
+    final nameController = TextEditingController(text: category.name);
+    Color selectedColor = category.color;
+    IconData selectedIcon = category.icon;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Category'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Category Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Color',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Colors.blue,
+                            Colors.red,
+                            Colors.green,
+                            Colors.orange,
+                            Colors.purple,
+                            Colors.teal,
+                          ].map((color) {
+                            return InkWell(
+                              onTap: () => setState(() => selectedColor = color),
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: color,
+                                child: selectedColor == color
+                                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                    : null,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Icon',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Icons.star,
+                            Icons.favorite,
+                            Icons.work,
+                            Icons.school,
+                            Icons.fitness_center,
+                            Icons.book,
+                          ].map((icon) {
+                            return InkWell(
+                              onTap: () => setState(() => selectedIcon = icon),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: selectedIcon == icon
+                                      ? selectedColor.withOpacity(0.1)
+                                      : null,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  icon,
+                                  color: selectedColor,
+                                  size: 24,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (nameController.text.isNotEmpty) {
+                  final updatedCategory = Category(
+                    id: category.id,
+                    name: nameController.text,
+                    color: selectedColor,
+                    icon: selectedIcon,
+                  );
+                  context.read<CategoryProvider>().updateCategory(updatedCategory);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Save'),
             ),
           ],
         ),
