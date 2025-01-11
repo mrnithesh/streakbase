@@ -255,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton.filled(
               icon: const Icon(Icons.add),
-              onPressed: () => _showAddHabitDialog(context),
+              onPressed: () => _showAddHabitDialog(context, _selectedFilterCategory),
               tooltip: 'Add new habit',
             ),
           ),
@@ -337,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 24),
                         FilledButton.icon(
-                          onPressed: () => _showAddHabitDialog(context),
+                          onPressed: () => _showAddHabitDialog(context, _selectedFilterCategory),
                           icon: const Icon(Icons.add),
                           label: const Text('Add Habit'),
                         ),
@@ -357,6 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onLogToday: () => _logHabit(context, habit),
                         onLogPastDate: (_) => _showLogHabitDialog(context, habit),
                         onDelete: () => _deleteHabit(context, habit),
+                        onEditCategory: () => _showEditHabitCategory(habit),
                       );
                     },
                   ),
@@ -517,10 +518,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _showAddHabitDialog(BuildContext context) async {
+  Future<void> _showAddHabitDialog(BuildContext context, [Category? defaultCategory]) async {
     _nameController.clear();
     _notesController.clear();
-    Category? selectedCategory;
+    Category? selectedCategory = defaultCategory;
 
     return showDialog(
       context: context,
@@ -767,10 +768,46 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showEditHabitCategory(Habit habit) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        Category? tempCategory = habit.category;
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Edit Category'),
+            content: CategorySelector(
+              selectedCategory: tempCategory,
+              onCategorySelected: (newCategory) {
+                setState(() {
+                  tempCategory = newCategory;
+                });
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final updatedHabit = habit.copyWith(category: tempCategory);
+                  await context.read<HabitProvider>().updateHabit(updatedHabit);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _notesController.dispose();
     super.dispose();
   }
-} 
+}

@@ -11,6 +11,7 @@ class HabitHeatmap extends StatelessWidget {
   final VoidCallback onLogToday;
   final Function(DateTime) onLogPastDate;
   final VoidCallback onDelete;
+  final VoidCallback? onEditCategory;
 
   const HabitHeatmap({
     Key? key,
@@ -20,6 +21,7 @@ class HabitHeatmap extends StatelessWidget {
     required this.onLogToday,
     required this.onLogPastDate,
     required this.onDelete,
+    this.onEditCategory,
   }) : super(key: key);
 
   Map<DateTime, int> _getHeatmapData() {
@@ -87,29 +89,32 @@ class HabitHeatmap extends StatelessWidget {
                           ),
                           if (habit.category != null) ...[
                             const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: habit.category!.color.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    habit.category!.icon,
-                                    size: 14,
-                                    color: habit.category!.color,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    habit.category!.name,
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            InkWell(
+                              onTap: onEditCategory,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: habit.category!.color.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      habit.category!.icon,
+                                      size: 14,
                                       color: habit.category!.color,
-                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      habit.category!.name,
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: habit.category!.color,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -279,26 +284,35 @@ class HabitHeatmap extends StatelessWidget {
   int _getCurrentStreak() {
     if (logs.isEmpty) return 0;
 
-    final sortedLogs = logs.where((log) => log.completed).toList()
+    final completedLogs = logs.where((l) => l.completed).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
-    int streak = 0;
-    DateTime? lastDate;
+    if (completedLogs.isEmpty) return 0;
 
-    for (var log in sortedLogs) {
-      final logDate = DateTime(log.date.year, log.date.month, log.date.day);
-      
-      if (lastDate == null) {
-        lastDate = logDate;
-        streak = 1;
+    int streak = 1;
+    DateTime currentDate = DateTime(
+      completedLogs.first.date.year,
+      completedLogs.first.date.month,
+      completedLogs.first.date.day,
+    );
+
+    for (var i = 1; i < completedLogs.length; i++) {
+      final logDate = DateTime(
+        completedLogs[i].date.year,
+        completedLogs[i].date.month,
+        completedLogs[i].date.day,
+      );
+      final difference = currentDate.difference(logDate).inDays;
+
+      if (difference == 0) {
+        // Same day log, ignore it.
         continue;
-      }
-
-      final difference = lastDate.difference(logDate).inDays;
-      if (difference == 1) {
+      } else if (difference == 1) {
+        // Consecutive day, increase streak.
         streak++;
-        lastDate = logDate;
+        currentDate = logDate;
       } else {
+        // Gap found, break out.
         break;
       }
     }
@@ -338,4 +352,4 @@ class HabitHeatmap extends StatelessWidget {
 
     return longestStreak;
   }
-} 
+}
