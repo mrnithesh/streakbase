@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _selectedDate;
   Category? _selectedFilterCategory;
   String _sortBy = 'name'; // 'name', 'date', 'streak'
+  bool _sortAscending = true;
 
   @override
   void initState() {
@@ -175,7 +176,63 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        bottom: _selectedFilterCategory != null ? PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.filter_list,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Filtered by: ${_selectedFilterCategory!.name}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () => setState(() => _selectedFilterCategory = null),
+                  tooltip: 'Clear filter',
+                ),
+              ],
+            ),
+          ),
+        ) : null,
         actions: [
+          // Sort button
+          IconButton(
+            icon: Stack(
+              children: [
+                const Icon(Icons.sort),
+                if (_sortBy != 'name')
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                        size: 8,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () => _showSortDialog(context),
+            tooltip: 'Sort habits',
+          ),
           // Filter button
           IconButton(
             icon: Icon(
@@ -184,12 +241,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onPressed: () => _showFilterDialog(context),
             tooltip: 'Filter habits',
-          ),
-          // Sort button
-          IconButton(
-            icon: const Icon(Icons.sort),
-            onPressed: () => _showSortDialog(context),
-            tooltip: 'Sort habits',
           ),
           // Add habit button
           Padding(
@@ -220,22 +271,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Sort habits
           filteredHabits.sort((a, b) {
+            int comparison;
             switch (_sortBy) {
               case 'name':
-                return a.name.compareTo(b.name);
+                comparison = a.name.compareTo(b.name);
+                break;
               case 'date':
                 final aDate = a.startDate ?? DateTime.now();
                 final bDate = b.startDate ?? DateTime.now();
-                return bDate.compareTo(aDate);
+                comparison = aDate.compareTo(bDate);
+                break;
               case 'streak':
                 final aLogs = habitProvider.getLogsForHabit(a.id!);
                 final bLogs = habitProvider.getLogsForHabit(b.id!);
                 final aStreak = _calculateStreak(aLogs);
                 final bStreak = _calculateStreak(bLogs);
-                return bStreak.compareTo(aStreak);
+                comparison = aStreak.compareTo(bStreak);
+                break;
               default:
-                return 0;
+                comparison = 0;
             }
+            return _sortAscending ? comparison : -comparison;
           });
 
           return RefreshIndicator(
@@ -315,6 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _selectedDate = null;
     _notesController.clear();
     TimeOfDay selectedTime = TimeOfDay.now();
+    int completionCount = 1;
 
     return showDialog(
       context: context,
@@ -356,6 +413,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
               ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Number of completions',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: completionCount > 1
+                        ? () => setState(() => completionCount--)
+                        : null,
+                  ),
+                  Text(
+                    completionCount.toString(),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => setState(() => completionCount++),
+                  ),
+                ],
+              ),
               TextField(
                 controller: _notesController,
                 decoration: const InputDecoration(
@@ -381,13 +462,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     selectedTime.hour,
                     selectedTime.minute,
                   );
-                  final log = HabitLog(
-                    habitId: habit.id!,
-                    date: dateTime,
-                    completed: true,
-                    notes: _notesController.text.isEmpty ? null : _notesController.text,
-                  );
-                  await context.read<HabitProvider>().logHabit(log);
+
+                  // Create multiple logs based on completionCount
+                  for (var i = 0; i < completionCount; i++) {
+                    final log = HabitLog(
+                      habitId: habit.id!,
+                      date: dateTime.add(Duration(minutes: i)), // Slightly offset each log
+                      completed: true,
+                      notes: _notesController.text.isEmpty ? null : _notesController.text,
+                    );
+                    await context.read<HabitProvider>().logHabit(log);
+                  }
                   Navigator.of(context).pop();
                 }
               },
@@ -596,27 +681,60 @@ class _HomeScreenState extends State<HomeScreen> {
             ListTile(
               leading: const Icon(Icons.sort_by_alpha),
               title: const Text('By Name'),
+              trailing: _sortBy == 'name' ? Icon(
+                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 16,
+              ) : null,
               selected: _sortBy == 'name',
               onTap: () {
-                setState(() => _sortBy = 'name');
+                setState(() {
+                  if (_sortBy == 'name') {
+                    _sortAscending = !_sortAscending;
+                  } else {
+                    _sortBy = 'name';
+                    _sortAscending = true;
+                  }
+                });
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text('By Date Added'),
+              trailing: _sortBy == 'date' ? Icon(
+                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 16,
+              ) : null,
               selected: _sortBy == 'date',
               onTap: () {
-                setState(() => _sortBy = 'date');
+                setState(() {
+                  if (_sortBy == 'date') {
+                    _sortAscending = !_sortAscending;
+                  } else {
+                    _sortBy = 'date';
+                    _sortAscending = false;
+                  }
+                });
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.local_fire_department),
               title: const Text('By Current Streak'),
+              trailing: _sortBy == 'streak' ? Icon(
+                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 16,
+              ) : null,
               selected: _sortBy == 'streak',
               onTap: () {
-                setState(() => _sortBy = 'streak');
+                setState(() {
+                  if (_sortBy == 'streak') {
+                    _sortAscending = !_sortAscending;
+                  } else {
+                    _sortBy = 'streak';
+                    _sortAscending = false;
+                  }
+                });
                 Navigator.pop(context);
               },
             ),

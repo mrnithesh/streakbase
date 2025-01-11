@@ -82,10 +82,45 @@ class HabitHeatmap extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        'Started on: ${DateFormat('MMM d, y').format(habit.startDate ?? DateTime.now())}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            Text(
+                              'Started on: ${DateFormat('MMM d, y').format(habit.startDate ?? DateTime.now())}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (habit.category != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: habit.category!.color.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      habit.category!.icon,
+                                      size: 14,
+                                      color: habit.category!.color,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      habit.category!.name,
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: habit.category!.color,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       if (habit.notes != null) ...[
