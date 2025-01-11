@@ -9,6 +9,7 @@ import 'package:streakbase/widgets/habit_heatmap.dart';
 import 'package:streakbase/widgets/category_selector.dart';
 import 'package:intl/intl.dart';
 import 'package:streakbase/utils/exceptions.dart';  // Add this import
+import 'package:streakbase/providers/theme_provider.dart'; // Add this import
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -212,6 +213,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context); // Access ThemeProvider
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
@@ -221,36 +224,23 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        bottom: _selectedFilterCategory != null ? PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.filter_list,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Filtered by: ${_selectedFilterCategory!.name}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.clear, size: 16),
-                  onPressed: () => setState(() => _selectedFilterCategory = null),
-                  tooltip: 'Clear filter',
-                ),
-              ],
-            ),
-          ),
-        ) : null,
         actions: [
+          // Theme toggle switch
+          Row(
+            children: [
+              Icon(
+                themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              Switch(
+                value: themeProvider.isDarkMode,
+                onChanged: (value) {
+                  themeProvider.toggleTheme(value);
+                },
+                activeColor: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
           // Sort button
           IconButton(
             icon: Stack(
@@ -301,6 +291,35 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+        bottom: _selectedFilterCategory != null ? PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.filter_list,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Filtered by: ${_selectedFilterCategory!.name}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () => setState(() => _selectedFilterCategory = null),
+                  tooltip: 'Clear filter',
+                ),
+              ],
+            ),
+          ),
+        ) : null,
       ),
       body: Consumer<HabitProvider>(
         builder: (context, habitProvider, child) {

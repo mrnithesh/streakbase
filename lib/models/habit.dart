@@ -74,3 +74,5 @@ class Habit {
     }
   }
 }
+
+// No changes needed for dark mode
